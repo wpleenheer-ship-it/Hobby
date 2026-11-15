@@ -40,19 +40,44 @@ svg{display:block;width:100%;height:auto;max-height:80vh}
 .bar{display:grid;grid-template-columns:90px 1fr 90px;gap:8px;align-items:center;font-size:14px}
 .bar b{display:block;height:12px;border-radius:6px;background:var(--btn)}
 .bar .v{text-align:right}
+:root{--bg2:#eadfc6;--wood:#8a5a2b}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg2:#120e09}}
+:root[data-theme="dark"]{--bg2:#120e09}
+body{background:radial-gradient(ellipse at top,var(--bg),var(--bg2));min-height:100vh}
+h1{font-size:32px;letter-spacing:.3px}
+.logo{color:#d9822b}
+.panel{border-radius:14px;box-shadow:0 2px 0 var(--line),0 8px 20px rgba(0,0,0,.08)}
+.panel:not(.fair) h2{font-size:12px;text-transform:uppercase;letter-spacing:.14em;opacity:.65}
+.modes button{border-radius:12px;padding:11px 14px;border:1.5px solid var(--line);transition:transform .12s,box-shadow .12s,background .12s}
+.modes button b{display:block;font-size:16px}
+.modes button:hover{transform:translateY(-1px);box-shadow:0 4px 10px rgba(0,0,0,.12)}
+.modes button[aria-pressed="true"]{background:linear-gradient(135deg,var(--btn),#3d7f9a);box-shadow:0 4px 12px rgba(43,93,115,.35)}
+select{font:inherit;padding:5px 8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+.opt select{margin-left:4px}
+input[type=checkbox]{accent-color:var(--btn);width:17px;height:17px;margin-top:2px}
+.go{background:linear-gradient(180deg,#e0963a,#c66f1c);color:#fff;border-radius:12px;box-shadow:0 4px 0 #9a540f,0 8px 16px rgba(198,111,28,.35);transition:transform .08s,box-shadow .08s;letter-spacing:.02em}
+.go:hover{filter:brightness(1.06)}
+.go:active{transform:translateY(3px);box-shadow:0 1px 0 #9a540f}
+#board{background:radial-gradient(circle at 25% 15%,#6cbbea,var(--sea) 65%);border:8px solid var(--wood);border-radius:18px;padding:14px;box-shadow:0 0 0 2px #5e3b17,inset 0 0 40px rgba(0,40,80,.35),0 12px 30px rgba(0,0,0,.25)}
+svg{animation:pop .35s ease}
+@keyframes pop{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:none}}
+.legend span{background:var(--panel);border:1px solid var(--line);border-radius:99px;padding:3px 10px}
+.legend span[style]{background:none;border:0;padding:0}
+.bar b{height:14px;background:linear-gradient(90deg,var(--btn),#6bb6d4);box-shadow:inset 0 -2px 0 rgba(0,0,0,.18)}
+@media (prefers-reduced-motion:reduce){svg{animation:none}.modes button,.go{transition:none}}
 </style>
 </head>
 <body>
 <div class="wrap">
 <div>
-<h1>Catan bordgenerator</h1>
+<h1><span class="logo">&#x2B22;</span> Catan bordgenerator</h1>
 <p class="sub">Maak een willekeurig bord dat past bij jullie huisregels.</p>
 <div class="panel">
 <h2>Spel</h2>
 <div class="modes" id="modes">
-<button data-m="base" aria-pressed="true">Basisspel<small>19 gebieden, 3 tot 4 spelers</small></button>
-<button data-m="ck" aria-pressed="false">Steden &amp; Ridders<small>Zelfde bord als het basisspel</small></button>
-<button data-m="sea" aria-pressed="false">Zeevaarders<small>Eilanden, zee en goudrivieren</small></button>
+<button data-m="base" aria-pressed="true"><b>Basisspel</b><small>Ook voor Steden &amp; Ridders: zelfde bord</small></button>
+
+<button data-m="sea" aria-pressed="false"><b>Zeevaarders</b><small>Eilanden, zee en goudrivieren</small></button>
 </div>
 </div>
 <div class="panel">
@@ -63,10 +88,11 @@ svg{display:block;width:100%;height:auto;max-height:80vh}
 <label class="opt"><input type="checkbox" id="oSame" checked> Gelijke getallen niet naast elkaar</label>
 <label class="opt"><input type="checkbox" id="oFair"> Alleen eerlijke borden</label>
 <label class="opt"><input type="checkbox" id="oPorts" checked> Havens tonen</label>
+<label class="opt">Spelers <select id="nPl"><option value="4" selected>3 tot 4 spelers</option><option value="6">5 tot 6 spelers</option></select></label>
 <label class="opt" id="kindWrap" style="display:none">Kaarttype <select id="kType"><option value="ring">Ring van eilanden</option><option value="twee">Twee continenten</option><option value="fjord">Schiereiland met fjorden</option><option value="sat">Groot eiland met satellieten</option><option value="random">Willekeurige eilanden</option></select></label>
 <label class="opt" id="nislWrap" style="display:none">Aantal eilanden <select id="nIsl"><option>2</option><option>3</option><option selected>4</option><option>5</option></select></label>
 </div>
-<button class="go" id="go">Schud het bord</button>
+<button class="go" id="go">🎲 Schud het bord</button>
 <div id="msg" role="status"></div>
 </div>
 <div>
@@ -86,12 +112,23 @@ const key=(q,r)=>q+","+r;
 function ring(R){const o=[];for(let q=-R;q<=R;q++)for(let r=-R;r<=R;r++)if(Math.abs(q+r)<=R)o.push([q,r]);return o}
 function dist(a,b){return Math.max(Math.abs(a[0]-b[0]),Math.abs(a[1]-b[1]),Math.abs(a[0]+a[1]-b[0]-b[1]))}
 
+const big=()=>nPl.value==="6";
+const NUMS6=[2,2,3,3,3,4,4,4,5,5,5,6,6,6,8,8,8,9,9,9,10,10,10,11,11,11,12,12,4,10,5,9];
+function numPool(n){return (big()?NUMS6:NUMS).slice(0,n)}
+function baseBig(){
+  const corner=c=>[Math.abs(c[0]),Math.abs(c[1]),Math.abs(c[0]+c[1])].filter(v=>v===3).length===2;
+  const all=ring(3),cells=all.filter(c=>!corner(c));
+  const edge=cells.filter(c=>dist(c,[0,0])===3),drop=edge[Math.floor(Math.random()*edge.length)];
+  const res=[].concat(Array(6).fill("forest"),Array(6).fill("pasture"),Array(6).fill("fields"),Array(5).fill("hills"),Array(5).fill("mountains"),["desert","desert"]);
+  return {cells:cells.filter(c=>c!==drop),res,all};
+}
 function baseLayout(){
+  if(big())return baseBig();
   const res=[].concat(Array(4).fill("forest"),Array(4).fill("pasture"),Array(4).fill("fields"),Array(3).fill("hills"),Array(3).fill("mountains"),["desert"]);
   return {cells:ring(2),res,all:ring(3)};
 }
 const D0=c=>dist(c,[0,0]);
-function finishSea(cells,all){
+function finishSeaOld(cells,all){
   const res=[].concat(Array(4).fill("forest"),Array(4).fill("pasture"),Array(4).fill("fields"),Array(3).fill("hills"),Array(3).fill("mountains"),["gold","desert"]);
   cells=cells.slice(0,20);
   return {cells,res:res.slice(0,cells.length),all};
@@ -112,7 +149,7 @@ function growIslands(all,sizes,seeds){
   }
   return groups.flat();
 }
-function seaRing(all){
+function seaRingOld(all){
   const ang=c=>{const[x,y]=pxy(c[0],c[1]);return Math.atan2(y,x)};
   const r2=all.filter(c=>D0(c)===2).sort((a,b)=>ang(a)-ang(b));
   const off=Math.floor(Math.random()*4),gk=new Set([0,1,2].map(k=>key(...r2[(off+k*4)%12])));
@@ -120,13 +157,13 @@ function seaRing(all){
   const cand=shuffle(all.filter(c=>D0(c)===3&&!gaps.some(g=>dist(g,c)<=1)));
   return land.concat(cand.slice(0,20-land.length));
 }
-function seaTwee(all){
+function seaTweeOld(all){
   const ax=Math.floor(Math.random()*3);
   const f=c=>ax===0?c[0]:ax===1?c[1]:-c[0]-c[1];
   const side=s=>all.filter(c=>f(c)*s>0).map(c=>[c,D0(c)+Math.random()*1.5]).sort((a,b)=>a[1]-b[1]).slice(0,10).map(x=>x[0]);
   return side(1).concat(side(-1));
 }
-function seaFjord(all){
+function seaFjordOld(all){
   const ax=Math.floor(Math.random()*3),sg=Math.random()<.5?1:-1;
   const f=c=>sg*(ax===0?c[0]:ax===1?c[1]:-c[0]-c[1]);
   const land=new Map(all.filter(c=>f(c)>=-1).map(c=>[key(...c),c]));
@@ -144,7 +181,7 @@ function seaFjord(all){
   }
   return [...land.values()].map(c=>[c,D0(c)+Math.random()]).sort((a,b)=>a[1]-b[1]).slice(0,20).map(x=>x[0]);
 }
-function seaSat(all){
+function seaSatOld(all){
   const near=all.filter(c=>D0(c)<=1),seeds=[near[Math.floor(Math.random()*near.length)]];
   for(let i=1;i<4;i++){
     for(let t=0;t<200;t++){
@@ -154,8 +191,57 @@ function seaSat(all){
   }
   return growIslands(all,[12,3,3,2],seeds);
 }
+function finishSea(cells,all){
+  const b=big(),N=b?30:20;
+  const res=b?[].concat(Array(6).fill("forest"),Array(6).fill("pasture"),Array(6).fill("fields"),Array(5).fill("hills"),Array(5).fill("mountains"),["gold","desert"]):[].concat(Array(4).fill("forest"),Array(4).fill("pasture"),Array(4).fill("fields"),Array(3).fill("hills"),Array(3).fill("mountains"),["gold","desert"]);
+  cells=cells.slice(0,N);
+  return {cells,res:res.slice(0,cells.length),all};
+}
+function seaRing(all){
+  const R=big()?4:3,N=big()?30:20,m=6*(R-1),sp=m/3;
+  const ang=c=>{const[x,y]=pxy(c[0],c[1]);return Math.atan2(y,x)};
+  const rr=all.filter(c=>D0(c)===R-1).sort((a,b)=>ang(a)-ang(b));
+  const off=Math.floor(Math.random()*sp),gk=new Set([0,1,2].map(k=>key(...rr[(off+k*sp)%m])));
+  const gaps=rr.filter(c=>gk.has(key(...c))),land=rr.filter(c=>!gk.has(key(...c)));
+  const cand=shuffle(all.filter(c=>D0(c)===R&&!gaps.some(g=>dist(g,c)<=1)));
+  return land.concat(cand.slice(0,N-land.length));
+}
+function seaTwee(all){
+  const ax=Math.floor(Math.random()*3),h=big()?15:10;
+  const f=c=>ax===0?c[0]:ax===1?c[1]:-c[0]-c[1];
+  const side=s=>all.filter(c=>f(c)*s>0).map(c=>[c,D0(c)+Math.random()*1.5]).sort((a,b)=>a[1]-b[1]).slice(0,h).map(x=>x[0]);
+  return side(1).concat(side(-1));
+}
+function seaFjord(all){
+  const R=big()?4:3,N=big()?30:20,ax=Math.floor(Math.random()*3),sg=Math.random()<.5?1:-1;
+  const f=c=>sg*(ax===0?c[0]:ax===1?c[1]:-c[0]-c[1]);
+  const land=new Map(all.filter(c=>f(c)>=-1).map(c=>[key(...c),c]));
+  for(let n=0;n<(big()?4:3);n++){
+    const s=shuffle([...land.values()].filter(c=>D0(c)===R))[0];
+    if(!s)break;
+    let c=s;
+    for(let step=0;step<3;step++){
+      land.delete(key(...c));
+      let nx=null;
+      DIRS.forEach(d=>{const x=[c[0]+d[0],c[1]+d[1]];if(land.has(key(...x))&&D0(x)<D0(c)&&(!nx||Math.random()<.5))nx=x});
+      if(!nx||D0(nx)===0)break;
+      c=nx;
+    }
+  }
+  return [...land.values()].map(c=>[c,D0(c)+Math.random()]).sort((a,b)=>a[1]-b[1]).slice(0,N).map(x=>x[0]);
+}
+function seaSat(all){
+  const near=all.filter(c=>D0(c)<=1),seeds=[near[Math.floor(Math.random()*near.length)]];
+  for(let i=1;i<4;i++){
+    for(let t=0;t<200;t++){
+      const c=all[Math.floor(Math.random()*all.length)];
+      if(D0(c)>=2&&seeds.every(s=>dist(s,c)>=(t<150?4:2))){seeds.push(c);break}
+    }
+  }
+  return growIslands(all,big()?[16,5,5,4]:[12,3,3,2],seeds);
+}
 function seaLayout(){
-  const all=ring(3),f={ring:seaRing,twee:seaTwee,fjord:seaFjord,sat:seaSat}[kType.value];
+  const all=ring(big()?4:3),f={ring:seaRing,twee:seaTwee,fjord:seaFjord,sat:seaSat}[kType.value];
   return f?finishSea(f(all),all):seaLayoutRandom();
 }
 function syncUI(){
@@ -163,9 +249,9 @@ function syncUI(){
   nislWrap.style.display=mode==="sea"&&kType.value==="random"?"":"none";
 }
 function seaLayoutRandom(){
-  const all=ring(3),inb=new Set(all.map(c=>key(...c)));
+  const all=ring(big()?4:3),inb=new Set(all.map(c=>key(...c)));
   const n=+nIsl.value,owner=new Map(),sizes=Array(n).fill(2);
-  for(let i=2*n;i<20;i++)sizes[Math.floor(Math.random()*n)]++;
+  for(let i=2*n;i<(big()?30:20);i++)sizes[Math.floor(Math.random()*n)]++;
   const seeds=[];
   for(let i=0;i<n;i++){
     for(let t=0;t<300;t++){
@@ -187,7 +273,7 @@ function seaLayoutRandom(){
   }
   const cells=groups.flat();
   const res=[].concat(Array(4).fill("forest"),Array(4).fill("pasture"),Array(4).fill("fields"),Array(3).fill("hills"),Array(3).fill("mountains"),["gold","desert"]);
-  return {cells,res:res.slice(0,cells.length),all};
+  return finishSea(cells,all);
 }
 function seaLayoutOld(){
   const all=ring(3),inb=new Set(all.map(c=>key(...c)));
@@ -244,7 +330,7 @@ function buildBoard(){
     const res=shuffle(L.res.slice());
     const cand=L.cells.map((c,k)=>({q:c[0],r:c[1],t:res[k]}));
     const numbered=cand.filter(t=>t.t!=="desert");
-    const nums=NUMS.slice(0,numbered.length);
+    const nums=numPool(numbered.length);
     shuffle(nums);
     numbered.forEach((t,k)=>t.n=nums[k]);
     tiles=cand;
@@ -287,14 +373,14 @@ function analyse(tiles){
     for(let i=0;i<6;i++){const a=ks[i],b=ks[(i+1)%6];V.get(a).adj.add(b);V.get(b).adj.add(a)}
   });
   V.forEach(v=>{let p=0;const rs=new Set();v.tiles.forEach(t=>{if(t.n){p+=DOTS[t.n];rs.add(t.t)}});v.pips=p;v.score=p+0.1*rs.size});
-  const blocked=new Set(),tot=[0,0,0,0];
-  [0,1,2,3,3,2,1,0].forEach(pl=>{
+  const blocked=new Set(),np=big()?6:4,tot=Array(np).fill(0);
+  [...Array(np).keys(),...[...Array(np).keys()].reverse()].forEach(pl=>{
     let b=null;
     V.forEach(v=>{if(!blocked.has(v.k)&&(!b||v.score>b.score))b=v});
     if(!b)return;
     blocked.add(b.k);b.adj.forEach(a=>blocked.add(a));tot[pl]+=b.pips;
   });
-  const ratio=(Math.max(...tot)-Math.min(...tot))/(tot.reduce((a,b)=>a+b,0)/4||1);
+  const ratio=(Math.max(...tot)-Math.min(...tot))/(tot.reduce((a,b)=>a+b,0)/np||1);
   const R={};
   tiles.forEach(t=>{if(t.t==="desert")return;const o=R[t.t]||(R[t.t]={t:t.t,pips:0,n:0});o.pips+=DOTS[t.n];o.n++});
   const res=Object.values(R).map(o=>({...o,avg:o.pips/o.n}));
@@ -310,7 +396,7 @@ function bar(l,v,m,t,c){return `<div class="bar"><span>${l}</span><b style="widt
 function showFair(f){
   const mx=Math.max(...f.tot),mr=Math.max(...f.res.map(o=>o.pips));
   fair.innerHTML=`<h2>Is dit een eerlijk bord? <span class="badge ${LV[f.level][1]}">${LV[f.level][0]}</span></h2>
-<p><b>Startplekken: ${LV[f.lD][0].toLowerCase()}.</b> Vier spelers kiezen om beurten de beste plek (1-2-3-4-4-3-2-1). Zoveel stippen heeft ieder dan met twee nederzettingen:</p>
+<p><b>Startplekken: ${LV[f.lD][0].toLowerCase()}.</b> ${f.tot.length} spelers kiezen om beurten de beste plek, eerst heen en dan terug. Zoveel stippen heeft ieder dan met twee nederzettingen:</p>
 <div class="bars">${f.tot.map((v,i)=>bar("Speler "+(i+1),v,mx,v+" stippen")).join("")}</div>
 <p><b>Grondstoffen: ${LV[f.lR][0].toLowerCase()}.</b> Stippen per grondstof, met tussen haakjes het gemiddelde per gebied (Ø):</p>
 <div class="bars">${f.res.map(o=>bar(COL[o.t][1],o.pips,mr,o.pips+" (Ø "+o.avg.toFixed(1).replace(".",",")+")",COL[o.t][0])).join("")}</div>
@@ -327,7 +413,7 @@ function makePorts(tiles){
       edges.push({x,y,mx:(x+nx)/2,my:(y+ny)/2});
     });
   });
-  const types=shuffle(["any","any","any","any","forest","pasture","fields","hills","mountains"].concat(mode==="sea"?["any"]:[]));
+  const types=shuffle(["any","any","any","any","forest","pasture","fields","hills","mountains"].concat(mode==="sea"?["any"]:[]).concat(big()?["any","any"]:[]));
   let pick=[];
   if(mode!=="sea"){
     edges.sort((a,b)=>Math.atan2(a.my,a.mx)-Math.atan2(b.my,b.mx));
@@ -369,17 +455,17 @@ function draw(tiles,all,ports){
   }
   tiles.forEach(t=>{
     const[x,y]=px(t.q,t.r);
-    out+=`<g transform="translate(${x},${y})"><polygon points="${pts()}" fill="${t.t==="gold"?"url(#gp)":COL[t.t][0]}" stroke="#f3e3b3" stroke-width="3" stroke-linejoin="round"/>${t.t==="gold"?'<text y="-23" text-anchor="middle" font-family="Georgia,serif" font-weight="bold" font-size="9" fill="#2b2118" stroke="#f3e3b3" stroke-width="2.5" paint-order="stroke">GOUD</text>':""}`;
+    out+=`<g transform="translate(${x},${y})"><polygon points="${pts()}" fill="${t.t==="gold"?"url(#gp)":COL[t.t][0]}" stroke="#f3e3b3" stroke-width="3" stroke-linejoin="round" filter="url(#sh)"/>${t.t==="gold"?'<text y="-23" text-anchor="middle" font-family="Georgia,serif" font-weight="bold" font-size="9" fill="#2b2118" stroke="#f3e3b3" stroke-width="2.5" paint-order="stroke">GOUD</text>':""}`;
     if(t.n){
       const red=t.n===6||t.n===8,d=DOTS[t.n],c=red?"#c4161c":"#1b1b1b";
       let dots="";
       for(let i=0;i<d;i++)dots+=`<circle cx="${(i-(d-1)/2)*5}" cy="13" r="1.8" fill="${c}"/>`;
-      out+=`<circle r="17" fill="#f3e3b3" stroke="#b69b5a"/><text y="5" text-anchor="middle" font-family="Georgia,serif" font-weight="bold" font-size="${t.n>9?17:19}" fill="${c}">${t.n}</text>${dots}`;
+      out+=`<circle r="17" fill="#f3e3b3" stroke="#b69b5a" filter="url(#sh)"/><text y="5" text-anchor="middle" font-family="Georgia,serif" font-weight="bold" font-size="${t.n>9?17:19}" fill="${c}">${t.n}</text>${dots}`;
     }
     out+="</g>";
   });
   out+=portSvg(ports);
-  board.innerHTML=`<svg viewBox="${x0} ${y0} ${x1-x0} ${y1-y0}" role="img" aria-label="Catan bord"><defs><pattern id="gp" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="10" height="10" fill="#b8860b"/><rect width="5" height="10" fill="#ffd633"/></pattern></defs>${out}</svg>`;
+  board.innerHTML=`<svg viewBox="${x0} ${y0} ${x1-x0} ${y1-y0}" role="img" aria-label="Catan bord"><defs><filter id="sh" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity=".35"/></filter><pattern id="gp" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="10" height="10" fill="#b8860b"/><rect width="5" height="10" fill="#ffd633"/></pattern></defs>${out}</svg>`;
   const used=[...new Set(tiles.map(t=>t.t))];
   legend.innerHTML=used.map(u=>`<span><i style="background:${u==="gold"?"repeating-linear-gradient(45deg,#b8860b 0 4px,#ffd633 4px 8px)":COL[u][0]}"></i>${COL[u][1]}</span>`).join("")+(oPorts.checked?'<span style="width:100%">Havens: een grijze ring (3:1) werkt voor alle grondstoffen, een gekleurde ring (2:1) voor die ene grondstof.</span>':"");
 }
@@ -394,6 +480,7 @@ go.onclick=generate;
 [o68,o89,o212,oSame,oFair].forEach(c=>c.onchange=generate);
 nIsl.onchange=generate;
 kType.onchange=()=>{syncUI();generate()};
+nPl.onchange=generate;
 oPorts.onchange=()=>draw(cur.tiles,cur.L.all,cur.ports);
 generate();
 </script>
