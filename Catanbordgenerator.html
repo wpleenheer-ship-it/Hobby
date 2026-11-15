@@ -65,11 +65,15 @@ svg{animation:pop .35s ease}
 .legend span[style]{background:none;border:0;padding:0}
 .bar b{height:14px;background:linear-gradient(90deg,var(--btn),#6bb6d4);box-shadow:inset 0 -2px 0 rgba(0,0,0,.18)}
 @media (prefers-reduced-motion:reduce){svg{animation:none}.modes button,.go{transition:none}}
+.lang{display:flex;gap:4px;justify-content:flex-end;margin-bottom:6px}
+.lang button{font:inherit;font-size:13px;padding:3px 10px;border-radius:99px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}
+.lang button[aria-pressed="true"]{background:var(--btn);color:var(--btnink);border-color:var(--btn)}
 </style>
 </head>
 <body>
 <div class="wrap">
 <div>
+<div class="lang" role="group" aria-label="Language"><button data-l="nl" aria-pressed="true">NL</button><button data-l="en" aria-pressed="false">EN</button></div>
 <h1><span class="logo">&#x2B22;</span> Catan bordgenerator</h1>
 <p class="sub">Maak een willekeurig bord dat past bij jullie huisregels.</p>
 <div class="panel">
@@ -112,6 +116,34 @@ const key=(q,r)=>q+","+r;
 function ring(R){const o=[];for(let q=-R;q<=R;q++)for(let r=-R;r<=R;r++)if(Math.abs(q+r)<=R)o.push([q,r]);return o}
 function dist(a,b){return Math.max(Math.abs(a[0]-b[0]),Math.abs(a[1]-b[1]),Math.abs(a[0]+a[1]-b[0]-b[1]))}
 
+let lang="nl",msgKey="";
+try{lang=localStorage.getItem("catanLang")==="en"?"en":"nl"}catch(e){}
+const EN={"Catan bordgenerator":"Catan board generator","Maak een willekeurig bord dat past bij jullie huisregels.":"Generate a random board that fits your house rules.","Spel":"Game","Basisspel":"Base game","Ook voor Steden & Ridders: zelfde bord":"Also for Cities & Knights: same board","Zeevaarders":"Seafarers","Eilanden, zee en goudrivieren":"Islands, sea and gold fields","Opties":"Options","6 en 8 niet naast elkaar":"6 and 8 not adjacent","8 en 9 niet naast elkaar":"8 and 9 not adjacent","2 en 12 niet naast elkaar":"2 and 12 not adjacent","Gelijke getallen niet naast elkaar":"Equal numbers not adjacent","Alleen eerlijke borden":"Fair boards only","Havens tonen":"Show harbours","Spelers":"Players","3 tot 4 spelers":"3 to 4 players","5 tot 6 spelers":"5 to 6 players","Kaarttype":"Map type","Ring van eilanden":"Ring of islands","Twee continenten":"Two continents","Schiereiland met fjorden":"Peninsula with fjords","Groot eiland met satellieten":"Large island with satellites","Willekeurige eilanden":"Random islands","Aantal eilanden":"Number of islands","\ud83c\udfb2 Schud het bord":"\ud83c\udfb2 Shuffle the board","Bos":"Forest","Weide":"Pasture","Akker":"Fields","Heuvel":"Hills","Berg":"Mountains","Woestijn":"Desert","Goud":"Gold","Zee":"Sea","GOUD":"GOLD","Eerlijk":"Fair","Redelijk eerlijk":"Fairly fair","Scheef":"Skewed","Geen bord gevonden dat aan alle getalopties voldoet. Zet een optie uit en schud opnieuw.":"No board found that satisfies all number options. Turn one off and shuffle again.","Geen volledig eerlijk bord gevonden. Dit is het eerlijkste van de pogingen.":"No fully fair board found. This is the fairest of the attempts.","Havens: een grijze ring (3:1) werkt voor alle grondstoffen, een gekleurde ring (2:1) voor die ene grondstof.":"Harbours: a grey ring (3:1) works for all resources, a coloured ring (2:1) for that one resource."};
+const t=s=>lang==="en"&&EN[s]!==undefined?EN[s]:s;
+function showFair(f){
+  if(lang!=="en")return showFairOld(f);
+  const mx=Math.max(...f.tot),mr=Math.max(...f.res.map(o=>o.pips)),low=i=>t(LV[i][0]).toLowerCase();
+  fair.innerHTML=`<h2>Is this board fair? <span class="badge ${LV[f.level][1]}">${t(LV[f.level][0])}</span></h2>
+<p><b>Starting spots: ${low(f.lD)}.</b> ${f.tot.length} players take turns picking the best spot, first forward and then back. This is how many pips each gets with two settlements:</p>
+<div class="bars">${f.tot.map((v,i)=>bar("Player "+(i+1),v,mx,v+" pips")).join("")}</div>
+<p><b>Resources: ${low(f.lR)}.</b> Pips per resource, with the average per tile in brackets (\u00d8):</p>
+<div class="bars">${f.res.map(o=>bar(t(COL[o.t][1]),o.pips,mr,o.pips+" (\u00d8 "+o.avg.toFixed(1)+")",COL[o.t][0])).join("")}</div>
+<p style="opacity:.75">Pips on a number show how likely it is to be rolled. Harbours are not part of this rating.</p>`;
+}
+function applyLang(){
+  document.documentElement.lang=lang;
+  document.title=t("Catan bordgenerator");
+  const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT),nodes=[];
+  while(w.nextNode())nodes.push(w.currentNode);
+  nodes.forEach(n=>{
+    if(!n.parentElement||n.parentElement.closest("#board,#legend,#fair,#msg,script,style"))return;
+    if(n.__nl===undefined)n.__nl=n.nodeValue;
+    const o=n.__nl,k=o.trim();
+    if(k)n.nodeValue=o.replace(k,()=>t(k));
+  });
+  document.querySelectorAll(".lang button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.l===lang));
+  if(cur){msg.textContent=t(msgKey);draw(cur.tiles,cur.L.all,cur.ports);showFair(cur.f)}
+}
 const big=()=>nPl.value==="6";
 const NUMS6=[2,2,3,3,3,4,4,4,5,5,5,6,6,6,8,8,8,9,9,9,10,10,10,11,11,11,12,12,4,10,5,9];
 function numPool(n){return (big()?NUMS6:NUMS).slice(0,n)}
@@ -353,7 +385,8 @@ function generate(){
     if(!best||b.bad<best.bad)best=b;
     if(b.ok&&b.f.level===0){best=b;found=true;break}
   }
-  msg.textContent=!best.ok?"Geen bord gevonden dat aan alle getalopties voldoet. Zet een optie uit en schud opnieuw.":(oFair.checked&&!found?"Geen volledig eerlijk bord gevonden. Dit is het eerlijkste van de pogingen.":"");
+  msgKey=!best.ok?"Geen bord gevonden dat aan alle getalopties voldoet. Zet een optie uit en schud opnieuw.":(oFair.checked&&!found?"Geen volledig eerlijk bord gevonden. Dit is het eerlijkste van de pogingen.":"");
+  msg.textContent=t(msgKey);
   best.ports=makePorts(best.tiles);
   cur=best;
   draw(best.tiles,best.L.all,best.ports);
@@ -393,7 +426,7 @@ function analyse(tiles){
 
 const LV=[["Eerlijk","b-good"],["Redelijk eerlijk","b-mid"],["Scheef","b-bad"]];
 function bar(l,v,m,t,c){return `<div class="bar"><span>${l}</span><b style="width:${Math.max(4,v/m*100)}%;${c?"background:"+c:""}"></b><span class="v">${t}</span></div>`}
-function showFair(f){
+function showFairOld(f){
   const mx=Math.max(...f.tot),mr=Math.max(...f.res.map(o=>o.pips));
   fair.innerHTML=`<h2>Is dit een eerlijk bord? <span class="badge ${LV[f.level][1]}">${LV[f.level][0]}</span></h2>
 <p><b>Startplekken: ${LV[f.lD][0].toLowerCase()}.</b> ${f.tot.length} spelers kiezen om beurten de beste plek, eerst heen en dan terug. Zoveel stippen heeft ieder dan met twee nederzettingen:</p>
@@ -455,7 +488,7 @@ function draw(tiles,all,ports){
   }
   tiles.forEach(t=>{
     const[x,y]=px(t.q,t.r);
-    out+=`<g transform="translate(${x},${y})"><polygon points="${pts()}" fill="${t.t==="gold"?"url(#gp)":COL[t.t][0]}" stroke="#f3e3b3" stroke-width="3" stroke-linejoin="round" filter="url(#sh)"/>${t.t==="gold"?'<text y="-23" text-anchor="middle" font-family="Georgia,serif" font-weight="bold" font-size="9" fill="#2b2118" stroke="#f3e3b3" stroke-width="2.5" paint-order="stroke">GOUD</text>':""}`;
+    out+=`<g transform="translate(${x},${y})"><polygon points="${pts()}" fill="${t.t==="gold"?"url(#gp)":COL[t.t][0]}" stroke="#f3e3b3" stroke-width="3" stroke-linejoin="round" filter="url(#sh)"/>${t.t==="gold"?'<text y="-23" text-anchor="middle" font-family="Georgia,serif" font-weight="bold" font-size="9" fill="#2b2118" stroke="#f3e3b3" stroke-width="2.5" paint-order="stroke">'+t("GOUD")+'</text>':""}`;
     if(t.n){
       const red=t.n===6||t.n===8,d=DOTS[t.n],c=red?"#c4161c":"#1b1b1b";
       let dots="";
@@ -467,7 +500,7 @@ function draw(tiles,all,ports){
   out+=portSvg(ports);
   board.innerHTML=`<svg viewBox="${x0} ${y0} ${x1-x0} ${y1-y0}" role="img" aria-label="Catan bord"><defs><filter id="sh" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity=".35"/></filter><pattern id="gp" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="10" height="10" fill="#b8860b"/><rect width="5" height="10" fill="#ffd633"/></pattern></defs>${out}</svg>`;
   const used=[...new Set(tiles.map(t=>t.t))];
-  legend.innerHTML=used.map(u=>`<span><i style="background:${u==="gold"?"repeating-linear-gradient(45deg,#b8860b 0 4px,#ffd633 4px 8px)":COL[u][0]}"></i>${COL[u][1]}</span>`).join("")+(oPorts.checked?'<span style="width:100%">Havens: een grijze ring (3:1) werkt voor alle grondstoffen, een gekleurde ring (2:1) voor die ene grondstof.</span>':"");
+  legend.innerHTML=used.map(u=>`<span><i style="background:${u==="gold"?"repeating-linear-gradient(45deg,#b8860b 0 4px,#ffd633 4px 8px)":COL[u][0]}"></i>${t(COL[u][1])}</span>`).join("")+(oPorts.checked?'<span style="width:100%">'+t("Havens: een grijze ring (3:1) werkt voor alle grondstoffen, een gekleurde ring (2:1) voor die ene grondstof.")+'</span>':"");
 }
 
 document.querySelectorAll("#modes button").forEach(b=>b.onclick=()=>{
@@ -482,7 +515,9 @@ nIsl.onchange=generate;
 kType.onchange=()=>{syncUI();generate()};
 nPl.onchange=generate;
 oPorts.onchange=()=>draw(cur.tiles,cur.L.all,cur.ports);
+document.querySelectorAll(".lang button").forEach(b=>b.onclick=()=>{lang=b.dataset.l;try{localStorage.setItem("catanLang",lang)}catch(e){}applyLang()});
 generate();
+applyLang();
 </script>
 </body>
 </html>
