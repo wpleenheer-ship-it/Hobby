@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Catan bordgenerator</title>
+<style>
+:root{--bg:#f6efe0;--ink:#2b2118;--panel:#fffaf0;--line:#d8c9a8;--sea:#3b8fc9;--btn:#2b5d73;--btnink:#fff;--warn:#a33a1f;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1d1812;--ink:#f1e6cf;--panel:#2a231a;--line:#4a3e2c;--sea:#2a6d9c;--btn:#5aa3c2;--btnink:#10202a;--warn:#ff9a7a}}
+:root[data-theme="dark"]{--bg:#1d1812;--ink:#f1e6cf;--panel:#2a231a;--line:#4a3e2c;--sea:#2a6d9c;--btn:#5aa3c2;--btnink:#10202a;--warn:#ff9a7a}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Georgia,"Times New Roman",serif;line-height:1.45}
+.wrap{max-width:1100px;margin:0 auto;padding:20px;display:grid;grid-template-columns:300px 1fr;gap:24px;align-items:start}
+@media(max-width:800px){.wrap{grid-template-columns:1fr}}
+h1{font-size:28px;margin:0 0 4px;line-height:1.15}
+p.sub{margin:0 0 16px;font-size:15px;opacity:.8}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
+.panel h2{font-size:16px;margin:0 0 8px}
+.modes{display:grid;gap:6px}
+.modes button{font:inherit;text-align:left;padding:9px 12px;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}
+.modes button[aria-pressed="true"]{background:var(--btn);color:var(--btnink);border-color:var(--btn)}
+.modes small{display:block;opacity:.8;font-size:12.5px}
+label.opt{display:flex;gap:8px;align-items:flex-start;margin:6px 0;font-size:15px;cursor:pointer}
+.go{width:100%;font:inherit;font-size:18px;padding:12px;border:0;border-radius:10px;background:var(--btn);color:var(--btnink);cursor:pointer;font-weight:bold}
+button:focus-visible,input:focus-visible{outline:3px solid #e0a030;outline-offset:2px}
+#msg{min-height:20px;font-size:14px;color:var(--warn);margin-top:8px}
+#board{background:var(--sea);border-radius:14px;padding:8px;overflow-x:auto}
+svg{display:block;width:100%;height:auto;max-height:80vh}
+.legend{display:flex;flex-wrap:wrap;gap:10px;font-size:13px;margin-top:10px}
+.legend span{display:inline-flex;gap:5px;align-items:center}
+.legend i{width:14px;height:14px;border-radius:3px;border:1px solid rgba(0,0,0,.4);display:inline-block}
+.fair{margin-top:14px}
+.fair h2{font-size:18px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.fair p{margin:6px 0;font-size:14px}
+.badge{padding:3px 12px;border-radius:99px;font-size:14px}
+.b-good{background:#2f7d3a;color:#fff}.b-mid{background:#d9a21b;color:#2b2118}.b-bad{background:#b23b22;color:#fff}
+.bars{display:grid;gap:5px;margin:8px 0 14px}
+.bar{display:grid;grid-template-columns:90px 1fr 90px;gap:8px;align-items:center;font-size:14px}
+.bar b{display:block;height:12px;border-radius:6px;background:var(--btn)}
+.bar .v{text-align:right}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div>
+<h1>Catan bordgenerator</h1>
+<p class="sub">Maak een willekeurig bord dat past bij jullie huisregels.</p>
+<div class="panel">
+<h2>Spel</h2>
+<div class="modes" id="modes">
+<button data-m="base" aria-pressed="true">Basisspel<small>19 gebieden, 3 tot 4 spelers</small></button>
+<button data-m="ck" aria-pressed="false">Steden &amp; Ridders<small>Zelfde bord als het basisspel</small></button>
+<button data-m="sea" aria-pressed="false">Zeevaarders<small>Eilanden, zee en goudrivieren</small></button>
+</div>
+</div>
+<div class="panel">
+<h2>Opties</h2>
+<label class="opt"><input type="checkbox" id="o68" checked> 6 en 8 niet naast elkaar</label>
+<label class="opt"><input type="checkbox" id="o89"> 8 en 9 niet naast elkaar</label>
+<label class="opt"><input type="checkbox" id="o212" checked> 2 en 12 niet naast elkaar</label>
+<label class="opt"><input type="checkbox" id="oSame" checked> Gelijke getallen niet naast elkaar</label>
+<label class="opt"><input type="checkbox" id="oFair"> Alleen eerlijke borden</label>
+<label class="opt"><input type="checkbox" id="oPorts" checked> Havens tonen</label>
+<label class="opt" id="kindWrap" style="display:none">Kaarttype <select id="kType"><option value="ring">Ring van eilanden</option><option value="twee">Twee continenten</option><option value="fjord">Schiereiland met fjorden</option><option value="sat">Groot eiland met satellieten</option><option value="random">Willekeurige eilanden</option></select></label>
+<label class="opt" id="nislWrap" style="display:none">Aantal eilanden <select id="nIsl"><option>2</option><option>3</option><option selected>4</option><option>5</option></select></label>
+</div>
+<button class="go" id="go">Schud het bord</button>
+<div id="msg" role="status"></div>
+</div>
+<div>
+<div id="board"></div>
+<div class="legend" id="legend"></div>
+<div class="panel fair" id="fair"></div>
+</div>
+</div>
+<script>
+const COL={forest:["#2f6b34","Bos"],pasture:["#8cc24a","Weide"],fields:["#e6b93a","Akker"],hills:["#b5582f","Heuvel"],mountains:["#8a8aa0","Berg"],desert:["#e3d19a","Woestijn"],gold:["#f2c100","Goud"],sea:["#3b8fc9","Zee"]};
+const DIRS=[[1,0],[-1,0],[0,1],[0,-1],[1,-1],[-1,1]];
+const NUMS=[2,3,3,4,4,5,5,6,6,8,8,9,9,10,10,11,11,12,3,4,5,6,8,9,10,11];
+const DOTS={2:1,3:2,4:3,5:4,6:5,8:5,9:4,10:3,11:2,12:1};
+let mode="base";
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const key=(q,r)=>q+","+r;
+function ring(R){const o=[];for(let q=-R;q<=R;q++)for(let r=-R;r<=R;r++)if(Math.abs(q+r)<=R)o.push([q,r]);return o}
+function dist(a,b){return Math.max(Math.abs(a[0]-b[0]),Math.abs(a[1]-b[1]),Math.abs(a[0]+a[1]-b[0]-b[1]))}
+
+function baseLayout(){
+  const res=[].concat(Array(4).fill("forest"),Array(4).fill("pasture"),Array(4).fill("fields"),Array(3).fill("hills"),Array(3).fill("mountains"),["desert"]);
+  return {cells:ring(2),res,all:ring(3)};
+}
+const D0=c=>dist(c,[0,0]);
+function finishSea(cells,all){
+  const res=[].concat(Array(4).fill("forest"),Array(4).fill("pasture"),Array(4).fill("fields"),Array(3).fill("hills"),Array(3).fill("mountains"),["gold","desert"]);
+  cells=cells.slice(0,20);
+  return {cells,res:res.slice(0,cells.length),all};
+}
+function growIslands(all,sizes,seeds){
+  const inb=new Set(all.map(c=>key(...c))),owner=new Map();
+  const groups=seeds.map((s,i)=>{owner.set(key(...s),i);return [s]});
+  for(let round=0;round<800&&groups.some((g,i)=>g.length<sizes[i]);round++){
+    groups.forEach((g,i)=>{
+      if(g.length>=sizes[i])return;
+      for(let t=0;t<12;t++){
+        const b=g[Math.floor(Math.random()*g.length)],d=DIRS[Math.floor(Math.random()*6)],c=[b[0]+d[0],b[1]+d[1]],k=key(...c);
+        if(!inb.has(k)||owner.has(k))continue;
+        if(DIRS.some(e=>{const o=owner.get(key(c[0]+e[0],c[1]+e[1]));return o!==undefined&&o!==i}))continue;
+        owner.set(k,i);g.push(c);break;
+      }
+    });
+  }
+  return groups.flat();
+}
+function seaRing(all){
+  const ang=c=>{const[x,y]=pxy(c[0],c[1]);return Math.atan2(y,x)};
+  const r2=all.filter(c=>D0(c)===2).sort((a,b)=>ang(a)-ang(b));
+  const off=Math.floor(Math.random()*4),gk=new Set([0,1,2].map(k=>key(...r2[(off+k*4)%12])));
+  const gaps=r2.filter(c=>gk.has(key(...c))),land=r2.filter(c=>!gk.has(key(...c)));
+  const cand=shuffle(all.filter(c=>D0(c)===3&&!gaps.some(g=>dist(g,c)<=1)));
+  return land.concat(cand.slice(0,20-land.length));
+}
+function seaTwee(all){
+  const ax=Math.floor(Math.random()*3);
+  const f=c=>ax===0?c[0]:ax===1?c[1]:-c[0]-c[1];
+  const side=s=>all.filter(c=>f(c)*s>0).map(c=>[c,D0(c)+Math.random()*1.5]).sort((a,b)=>a[1]-b[1]).slice(0,10).map(x=>x[0]);
+  return side(1).concat(side(-1));
+}
+function seaFjord(all){
+  const ax=Math.floor(Math.random()*3),sg=Math.random()<.5?1:-1;
+  const f=c=>sg*(ax===0?c[0]:ax===1?c[1]:-c[0]-c[1]);
+  const land=new Map(all.filter(c=>f(c)>=-1).map(c=>[key(...c),c]));
+  for(let n=0;n<3;n++){
+    const s=shuffle([...land.values()].filter(c=>D0(c)===3))[0];
+    if(!s)break;
+    let c=s;
+    for(let step=0;step<3;step++){
+      land.delete(key(...c));
+      let nx=null;
+      DIRS.forEach(d=>{const x=[c[0]+d[0],c[1]+d[1]];if(land.has(key(...x))&&D0(x)<D0(c)&&(!nx||Math.random()<.5))nx=x});
+      if(!nx||D0(nx)===0)break;
+      c=nx;
+    }
+  }
+  return [...land.values()].map(c=>[c,D0(c)+Math.random()]).sort((a,b)=>a[1]-b[1]).slice(0,20).map(x=>x[0]);
+}
+function seaSat(all){
+  const near=all.filter(c=>D0(c)<=1),seeds=[near[Math.floor(Math.random()*near.length)]];
+  for(let i=1;i<4;i++){
+    for(let t=0;t<200;t++){
+      const c=all[Math.floor(Math.random()*all.length)];
+      if(D0(c)>=2&&seeds.every(s=>dist(s,c)>=(t<150?4:2))){seeds.push(c);break}
+    }
+  }
+  return growIslands(all,[12,3,3,2],seeds);
+}
+function seaLayout(){
+  const all=ring(3),f={ring:seaRing,twee:seaTwee,fjord:seaFjord,sat:seaSat}[kType.value];
+  return f?finishSea(f(all),all):seaLayoutRandom();
+}
+function syncUI(){
+  kindWrap.style.display=mode==="sea"?"":"none";
+  nislWrap.style.display=mode==="sea"&&kType.value==="random"?"":"none";
+}
+function seaLayoutRandom(){
+  const all=ring(3),inb=new Set(all.map(c=>key(...c)));
+  const n=+nIsl.value,owner=new Map(),sizes=Array(n).fill(2);
+  for(let i=2*n;i<20;i++)sizes[Math.floor(Math.random()*n)]++;
+  const seeds=[];
+  for(let i=0;i<n;i++){
+    for(let t=0;t<300;t++){
+      const c=all[Math.floor(Math.random()*all.length)],gap=t<200?3:2;
+      if(dist(c,[0,0])<=3&&seeds.every(s=>dist(s,c)>=gap)){seeds.push(c);break}
+    }
+  }
+  const groups=seeds.map((s,i)=>{owner.set(key(...s),i);return [s]});
+  for(let round=0;round<600&&groups.some((g,i)=>g.length<sizes[i]);round++){
+    groups.forEach((g,i)=>{
+      if(g.length>=sizes[i])return;
+      for(let t=0;t<12;t++){
+        const b=g[Math.floor(Math.random()*g.length)],d=DIRS[Math.floor(Math.random()*6)],c=[b[0]+d[0],b[1]+d[1]],k=key(...c);
+        if(!inb.has(k)||owner.has(k))continue;
+        if(DIRS.some(e=>{const o=owner.get(key(c[0]+e[0],c[1]+e[1]));return o!==undefined&&o!==i}))continue;
+        owner.set(k,i);g.push(c);break;
+      }
+    });
+  }
+  const cells=groups.flat();
+  const res=[].concat(Array(4).fill("forest"),Array(4).fill("pasture"),Array(4).fill("fields"),Array(3).fill("hills"),Array(3).fill("mountains"),["gold","desert"]);
+  return {cells,res:res.slice(0,cells.length),all};
+}
+function seaLayoutOld(){
+  const all=ring(3),inb=new Set(all.map(c=>key(...c)));
+  const land=new Map();
+  const sizes=[10,7,5];
+  const seeds=[];
+  while(seeds.length<3){
+    const c=all[Math.floor(Math.random()*all.length)];
+    if(dist(c,[0,0])<=2&&seeds.every(s=>dist(s,c)>=3))seeds.push(c);
+  }
+  seeds.forEach((s,i)=>{
+    const isl=[s];land.set(key(...s),s);
+    let guard=0;
+    while(isl.length<sizes[i]&&guard++<200){
+      const b=isl[Math.floor(Math.random()*isl.length)],d=DIRS[Math.floor(Math.random()*6)];
+      const n=[b[0]+d[0],b[1]+d[1]];
+      if(inb.has(key(...n))&&!land.has(key(...n))){land.set(key(...n),n);isl.push(n)}
+    }
+  });
+  const cells=[...land.values()];
+  const res=[].concat(Array(4).fill("forest"),Array(4).fill("pasture"),Array(4).fill("fields"),Array(3).fill("hills"),Array(3).fill("mountains"),Array(2).fill("gold"),Array(2).fill("desert"));
+  while(res.length<cells.length)res.push(["forest","pasture","fields"][res.length%3]);
+  return {cells,res:res.slice(0,cells.length),all};
+}
+
+function rules(){
+  const R=[];
+  if(o68.checked)R.push([[6,8],[6,8]]);
+  if(o89.checked)R.push([[8],[9]]);
+  if(o212.checked)R.push([[2],[12]]);
+  return R;
+}
+function bad(tiles,R,same){
+  const m=new Map(tiles.map(t=>[key(t.q,t.r),t]));
+  for(const t of tiles){
+    if(!t.n)continue;
+    for(const d of DIRS){
+      const o=m.get(key(t.q+d[0],t.r+d[1]));
+      if(!o||!o.n)continue;
+      if(same&&o.n===t.n)return true;
+      for(const [A,B] of R){
+        if((A.includes(t.n)&&B.includes(o.n))||(B.includes(t.n)&&A.includes(o.n)))return true;
+      }
+    }
+  }
+  return false;
+}
+
+function buildBoard(){
+  const L=mode==="sea"?seaLayout():baseLayout();
+  const R=rules(),same=oSame.checked;
+  let tiles=null,ok=false;
+  for(let i=0;i<1500&&!ok;i++){
+    const res=shuffle(L.res.slice());
+    const cand=L.cells.map((c,k)=>({q:c[0],r:c[1],t:res[k]}));
+    const numbered=cand.filter(t=>t.t!=="desert");
+    const nums=NUMS.slice(0,numbered.length);
+    shuffle(nums);
+    numbered.forEach((t,k)=>t.n=nums[k]);
+    tiles=cand;
+    ok=!bad(cand,R,same);
+  }
+  return {tiles,L,ok};
+}
+
+const SS=44,WW=Math.sqrt(3)*SS;
+const pxy=(q,r)=>[WW*(q+r/2),SS*1.5*r];
+let cur=null;
+
+function generate(){
+  let best=null,found=false;
+  const tries=oFair.checked?250:1,t0=performance.now();
+  for(let i=0;i<tries&&(i===0||performance.now()-t0<600);i++){
+    const b=buildBoard();
+    b.f=analyse(b.tiles);
+    b.bad=b.f.badness+(b.ok?0:100);
+    if(!best||b.bad<best.bad)best=b;
+    if(b.ok&&b.f.level===0){best=b;found=true;break}
+  }
+  msg.textContent=!best.ok?"Geen bord gevonden dat aan alle getalopties voldoet. Zet een optie uit en schud opnieuw.":(oFair.checked&&!found?"Geen volledig eerlijk bord gevonden. Dit is het eerlijkste van de pogingen.":"");
+  best.ports=makePorts(best.tiles);
+  cur=best;
+  draw(best.tiles,best.L.all,best.ports);
+  showFair(best.f);
+}
+
+function analyse(tiles){
+  const V=new Map(),vk=(x,y)=>Math.round(x)+","+Math.round(y);
+  tiles.forEach(t=>{
+    const[x,y]=pxy(t.q,t.r),ks=[];
+    for(let i=0;i<6;i++){
+      const g=Math.PI/180*(60*i-30),k=vk(x+SS*Math.cos(g),y+SS*Math.sin(g));
+      ks.push(k);
+      if(!V.has(k))V.set(k,{k,tiles:new Set(),adj:new Set()});
+      V.get(k).tiles.add(t);
+    }
+    for(let i=0;i<6;i++){const a=ks[i],b=ks[(i+1)%6];V.get(a).adj.add(b);V.get(b).adj.add(a)}
+  });
+  V.forEach(v=>{let p=0;const rs=new Set();v.tiles.forEach(t=>{if(t.n){p+=DOTS[t.n];rs.add(t.t)}});v.pips=p;v.score=p+0.1*rs.size});
+  const blocked=new Set(),tot=[0,0,0,0];
+  [0,1,2,3,3,2,1,0].forEach(pl=>{
+    let b=null;
+    V.forEach(v=>{if(!blocked.has(v.k)&&(!b||v.score>b.score))b=v});
+    if(!b)return;
+    blocked.add(b.k);b.adj.forEach(a=>blocked.add(a));tot[pl]+=b.pips;
+  });
+  const ratio=(Math.max(...tot)-Math.min(...tot))/(tot.reduce((a,b)=>a+b,0)/4||1);
+  const R={};
+  tiles.forEach(t=>{if(t.t==="desert")return;const o=R[t.t]||(R[t.t]={t:t.t,pips:0,n:0});o.pips+=DOTS[t.n];o.n++});
+  const res=Object.values(R).map(o=>({...o,avg:o.pips/o.n}));
+  const m=res.reduce((a,o)=>a+o.avg,0)/res.length;
+  const cv=Math.sqrt(res.reduce((a,o)=>a+(o.avg-m)**2,0)/res.length)/m;
+  const lvl=(v,a,b)=>v<=a?0:v<=b?1:2;
+  const lD=lvl(ratio,.12,.22),lR=lvl(cv,.18,.28);
+  return {tot,ratio,res,cv,lD,lR,level:Math.max(lD,lR),badness:ratio/.12+cv/.18};
+}
+
+const LV=[["Eerlijk","b-good"],["Redelijk eerlijk","b-mid"],["Scheef","b-bad"]];
+function bar(l,v,m,t,c){return `<div class="bar"><span>${l}</span><b style="width:${Math.max(4,v/m*100)}%;${c?"background:"+c:""}"></b><span class="v">${t}</span></div>`}
+function showFair(f){
+  const mx=Math.max(...f.tot),mr=Math.max(...f.res.map(o=>o.pips));
+  fair.innerHTML=`<h2>Is dit een eerlijk bord? <span class="badge ${LV[f.level][1]}">${LV[f.level][0]}</span></h2>
+<p><b>Startplekken: ${LV[f.lD][0].toLowerCase()}.</b> Vier spelers kiezen om beurten de beste plek (1-2-3-4-4-3-2-1). Zoveel stippen heeft ieder dan met twee nederzettingen:</p>
+<div class="bars">${f.tot.map((v,i)=>bar("Speler "+(i+1),v,mx,v+" stippen")).join("")}</div>
+<p><b>Grondstoffen: ${LV[f.lR][0].toLowerCase()}.</b> Stippen per grondstof, met tussen haakjes het gemiddelde per gebied (Ø):</p>
+<div class="bars">${f.res.map(o=>bar(COL[o.t][1],o.pips,mr,o.pips+" (Ø "+o.avg.toFixed(1).replace(".",",")+")",COL[o.t][0])).join("")}</div>
+<p style="opacity:.75">Stippen op een getal geven de kans dat het gegooid wordt. Havens tellen niet mee in deze beoordeling.</p>`;
+}
+
+function makePorts(tiles){
+  const land=new Set(tiles.map(t=>key(t.q,t.r))),edges=[];
+  tiles.forEach(t=>{
+    const[x,y]=pxy(t.q,t.r);
+    DIRS.forEach(d=>{
+      if(land.has(key(t.q+d[0],t.r+d[1])))return;
+      const[nx,ny]=pxy(t.q+d[0],t.r+d[1]);
+      edges.push({x,y,mx:(x+nx)/2,my:(y+ny)/2});
+    });
+  });
+  const types=shuffle(["any","any","any","any","forest","pasture","fields","hills","mountains"].concat(mode==="sea"?["any"]:[]));
+  let pick=[];
+  if(mode!=="sea"){
+    edges.sort((a,b)=>Math.atan2(a.my,a.mx)-Math.atan2(b.my,b.mx));
+    pick=types.map((_,i)=>edges[Math.floor((i+.5)*edges.length/types.length)]);
+  }else{
+    for(let k=0;k<60&&pick.length<types.length;k++){
+      const c=[];
+      shuffle(edges.slice()).forEach(e=>{if(c.every(o=>Math.hypot(o.mx-e.mx,o.my-e.my)>SS*1.8))c.push(e)});
+      if(c.length>pick.length)pick=c;
+    }
+  }
+  return pick.slice(0,types.length).map((e,i)=>({...e,type:types[i]}));
+}
+
+function portSvg(ports){
+  if(!oPorts.checked)return "";
+  return ports.map(p=>{
+    const dx=p.mx-p.x,dy=p.my-p.y,n=Math.hypot(dx,dy),ux=dx/n,uy=dy/n;
+    const cx=p.mx+ux*SS*.8,cy=p.my+uy*SS*.8,ex=-uy*SS/2,ey=ux*SS/2;
+    const sp=p.type!=="any",ring=sp?COL[p.type][0]:"#7a8a99";
+    return `<line x1="${cx}" y1="${cy}" x2="${p.mx+ex}" y2="${p.my+ey}" stroke="#6b4a2a" stroke-width="3"/><line x1="${cx}" y1="${cy}" x2="${p.mx-ex}" y2="${p.my-ey}" stroke="#6b4a2a" stroke-width="3"/><circle cx="${cx}" cy="${cy}" r="15" fill="#f3e3b3" stroke="${ring}" stroke-width="5"/><text x="${cx}" y="${cy+4}" text-anchor="middle" font-family="Georgia,serif" font-weight="bold" font-size="11" fill="#1b1b1b">${sp?"2:1":"3:1"}</text>`;
+  }).join("");
+}
+
+function draw(tiles,all,ports){
+  const S=44,W=Math.sqrt(3)*S;
+  const px=(q,r)=>[W*(q+r/2),S*1.5*r];
+  const land=new Set(tiles.map(t=>key(t.q,t.r)));
+  const pts=a=>{const p=[];for(let i=0;i<6;i++){const g=Math.PI/180*(60*i-30);p.push((S*Math.cos(g)).toFixed(1)+","+(S*Math.sin(g)).toFixed(1))}return p.join(" ")};
+  let xs=[],ys=[],out="";
+  const cells=mode==="sea"?all:tiles.map(t=>[t.q,t.r]);
+  cells.forEach(([q,r])=>{const[x,y]=px(q,r);xs.push(x);ys.push(y)});
+  const pad=S*1.9,x0=Math.min(...xs)-pad,x1=Math.max(...xs)+pad,y0=Math.min(...ys)-pad,y1=Math.max(...ys)+pad;
+  if(mode==="sea"){
+    all.filter(c=>!land.has(key(...c))).forEach(([q,r])=>{
+      const[x,y]=px(q,r);
+      out+=`<polygon transform="translate(${x},${y})" points="${pts()}" fill="#4a9fd6" fill-opacity=".45" stroke="#2a6d9c" stroke-opacity=".5" stroke-width="1.5"/>`;
+    });
+  }
+  tiles.forEach(t=>{
+    const[x,y]=px(t.q,t.r);
+    out+=`<g transform="translate(${x},${y})"><polygon points="${pts()}" fill="${t.t==="gold"?"url(#gp)":COL[t.t][0]}" stroke="#f3e3b3" stroke-width="3" stroke-linejoin="round"/>${t.t==="gold"?'<text y="-23" text-anchor="middle" font-family="Georgia,serif" font-weight="bold" font-size="9" fill="#2b2118" stroke="#f3e3b3" stroke-width="2.5" paint-order="stroke">GOUD</text>':""}`;
+    if(t.n){
+      const red=t.n===6||t.n===8,d=DOTS[t.n],c=red?"#c4161c":"#1b1b1b";
+      let dots="";
+      for(let i=0;i<d;i++)dots+=`<circle cx="${(i-(d-1)/2)*5}" cy="13" r="1.8" fill="${c}"/>`;
+      out+=`<circle r="17" fill="#f3e3b3" stroke="#b69b5a"/><text y="5" text-anchor="middle" font-family="Georgia,serif" font-weight="bold" font-size="${t.n>9?17:19}" fill="${c}">${t.n}</text>${dots}`;
+    }
+    out+="</g>";
+  });
+  out+=portSvg(ports);
+  board.innerHTML=`<svg viewBox="${x0} ${y0} ${x1-x0} ${y1-y0}" role="img" aria-label="Catan bord"><defs><pattern id="gp" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="10" height="10" fill="#b8860b"/><rect width="5" height="10" fill="#ffd633"/></pattern></defs>${out}</svg>`;
+  const used=[...new Set(tiles.map(t=>t.t))];
+  legend.innerHTML=used.map(u=>`<span><i style="background:${u==="gold"?"repeating-linear-gradient(45deg,#b8860b 0 4px,#ffd633 4px 8px)":COL[u][0]}"></i>${COL[u][1]}</span>`).join("")+(oPorts.checked?'<span style="width:100%">Havens: een grijze ring (3:1) werkt voor alle grondstoffen, een gekleurde ring (2:1) voor die ene grondstof.</span>':"");
+}
+
+document.querySelectorAll("#modes button").forEach(b=>b.onclick=()=>{
+  mode=b.dataset.m;
+  syncUI();
+  document.querySelectorAll("#modes button").forEach(x=>x.setAttribute("aria-pressed",x===b));
+  generate();
+});
+go.onclick=generate;
+[o68,o89,o212,oSame,oFair].forEach(c=>c.onchange=generate);
+nIsl.onchange=generate;
+kType.onchange=()=>{syncUI();generate()};
+oPorts.onchange=()=>draw(cur.tiles,cur.L.all,cur.ports);
+generate();
+</script>
+</body>
+</html>
