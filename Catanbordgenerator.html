@@ -241,6 +241,24 @@ function seaRing(all){
 function seaTwee(all){
   const ax=Math.floor(Math.random()*3),h=big()?15:10;
   const f=c=>ax===0?c[0]:ax===1?c[1]:-c[0]-c[1];
+  const side=s=>{
+    const pool=new Map(all.filter(c=>f(c)*s>0).map(c=>[key(...c),c]));
+    const start=[...pool.values()].filter(c=>f(c)*s===1&&D0(c)<=2);
+    const pick=[start[Math.floor(Math.random()*start.length)]],got=new Set([key(...pick[0])]);
+    while(pick.length<h){
+      const fr=[];
+      pick.forEach(c=>DIRS.forEach(d=>{const x=[c[0]+d[0],c[1]+d[1]],k=key(...x);if(pool.has(k)&&!got.has(k))fr.push(x)}));
+      if(!fr.length)break;
+      const x=fr.map(c=>[c,D0(c)+Math.random()*2]).sort((a,b)=>a[1]-b[1])[0][0];
+      got.add(key(...x));pick.push(x);
+    }
+    return pick;
+  };
+  return side(1).concat(side(-1));
+}
+function seaTweeOld2(all){
+  const ax=Math.floor(Math.random()*3),h=big()?15:10;
+  const f=c=>ax===0?c[0]:ax===1?c[1]:-c[0]-c[1];
   const side=s=>all.filter(c=>f(c)*s>0).map(c=>[c,D0(c)+Math.random()*1.5]).sort((a,b)=>a[1]-b[1]).slice(0,h).map(x=>x[0]);
   return side(1).concat(side(-1));
 }
@@ -488,7 +506,7 @@ function draw(tiles,all,ports){
   }
   tiles.forEach(t=>{
     const[x,y]=px(t.q,t.r);
-    out+=`<g transform="translate(${x},${y})"><polygon points="${pts()}" fill="${t.t==="gold"?"url(#gp)":COL[t.t][0]}" stroke="#f3e3b3" stroke-width="3" stroke-linejoin="round" filter="url(#sh)"/>${t.t==="gold"?'<text y="-23" text-anchor="middle" font-family="Georgia,serif" font-weight="bold" font-size="9" fill="#2b2118" stroke="#f3e3b3" stroke-width="2.5" paint-order="stroke">'+t("GOUD")+'</text>':""}`;
+    out+=`<g transform="translate(${x},${y})"><polygon points="${pts()}" fill="${t.t==="gold"?"url(#gp)":COL[t.t][0]}" stroke="#f3e3b3" stroke-width="3" stroke-linejoin="round" filter="url(#sh)"/>${t.t==="gold"?'<text y="-23" text-anchor="middle" font-family="Georgia,serif" font-weight="bold" font-size="9" fill="#2b2118" stroke="#f3e3b3" stroke-width="2.5" paint-order="stroke">'+(lang==="en"?"GOLD":"GOUD")+'</text>':""}`;
     if(t.n){
       const red=t.n===6||t.n===8,d=DOTS[t.n],c=red?"#c4161c":"#1b1b1b";
       let dots="";
