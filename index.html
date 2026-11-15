@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="0; url=Catan%20bordgenerator.html">
+    <title>Catan bordgenerator</title>
+    <style>
+        :root {
+            --bg: #f6efe0;
+            --ink: #2b2118;
+            --panel: #fffaf0;
+            --line: #d8c9a8;
+            --btn: #2b5d73;
+            --btnink: #fff;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #1d1812;
+                --ink: #f1e6cf;
+                --panel: #2a231a;
+                --line: #4a3e2c;
+                --btn: #5aa3c2;
+                --btnink: #10202a;
+            }
+        }
+        body {
+            font-family: Georgia, "Times New Roman", serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: var(--bg);
+            color: var(--ink);
+            line-height: 1.45;
+        }
+        .container {
+            text-align: center;
+            background: var(--panel);
+            border: 1px solid var(--line);
+            padding: 2.5rem;
+            border-radius: 10px;
+            max-width: 400px;
+            margin: 20px;
+        }
+        h1 {
+            font-size: 26px;
+            margin: 0 0 8px;
+        }
+        p {
+            margin: 0 0 16px;
+            opacity: 0.85;
+            font-size: 15px;
+        }
+        a {
+            display: inline-block;
+            margin-top: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            background-color: var(--btn);
+            color: var(--btnink);
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        a:hover {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Catan bordgenerator</h1>
+        <p>Je wordt direct doorgestuurd naar het spelbord...</p>
+        <a href="Catan%20bordgenerator.html">Open de bordgenerator</a>
+    </div>
+</body>
+</html>
